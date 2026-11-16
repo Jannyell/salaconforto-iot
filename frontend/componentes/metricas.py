@@ -3,7 +3,7 @@ import streamlit as st
 
 def verificar_limite_sensacao(sensacao_termica, limite):
     """
-    Verifica se a sensação térmica atingiu ou ultrapassou o limite.
+    Verifica se a sensação térmica está dentro do limite (menor ou igual).
     """
 
     return sensacao_termica <= limite
@@ -15,8 +15,6 @@ def renderizar_metricas(ultima, limite):
     """
 
     coluna1, coluna2, coluna3 = st.columns(3)
-
-    dentro_limite = verificar_limite_sensacao(ultima['temperatura'], limite)
 
     # TEMPERATURA
     with coluna1:

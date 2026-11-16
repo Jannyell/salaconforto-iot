@@ -1,11 +1,19 @@
 import streamlit as st
 
-def renderizar_sidebar():
+def renderizar_sidebar(salas):
     """
-    Renderiza a sidebar e retorna o limite da sensação térmica desejado.
+    Renderiza a sidebar e retorna o limite da sensação térmica desejado
+    e a sala escolhida.
     """
 
     st.sidebar.title("Configurações")
+
+    # Sala a exibir (sala 1: placa real; sala 2: simulador)
+    sala = st.sidebar.selectbox(
+            "Sala",
+            salas or ["1"],
+            format_func=lambda s: f"Sala {s}"
+        )
     
     st.sidebar.subheader("Limites de conforto")
 
@@ -19,4 +27,4 @@ def renderizar_sidebar():
         )
     
 
-    return limite_sensacao_maximo
+    return limite_sensacao_maximo, sala

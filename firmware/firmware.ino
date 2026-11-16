@@ -1,5 +1,6 @@
-#include "Sensor.h"
-#include "WifiConector.h"
+#include "sensor.h"
+#include "wificonector.h"
+#include "mqttpublicador.h"
 #include "credenciais.h"
 
 // CONFIGURAÇÕES DO SENSOR
@@ -11,6 +12,11 @@ Sensor sensor(DHTPIN, DHTTYPE);
 
 WifiConector wifi;
 
+MqttPublicador mqtt;
+
+unsigned long ultimoEnvio = 0;
+
+
 void setup() {
 
     Serial.begin(115200);
@@ -20,6 +26,9 @@ void setup() {
 
     // Conecta ao Wi-Fi
     wifi.iniciar();
+
+    // Conecta ao broker MQTT
+    mqtt.iniciar();
 }
 
 
@@ -33,6 +42,24 @@ void loop() {
         wifi.iniciar();
         return;
     }
+
+    // Verifica a conexão com o broker
+    if (!mqtt.conectado()) {
+
+        mqtt.reconectar();
+        delay(2000);
+        return;
+    }
+
+    // Mantém a conexão com o broker viva (keepalive)
+    mqtt.manter();
+
+    // Ainda não chegou a hora da próxima medição
+    if (millis() - ultimoEnvio < INTERVALO_ENVIO) {
+        return;
+    }
+
+    ultimoEnvio = millis();
 
     float temperatura;
     float umidade;
@@ -50,21 +77,18 @@ void loop() {
         Serial.print(umidade);
         Serial.println(" %");
 
-        // Envia os dados para a API
-        if (wifi.enviarDados(temperatura, umidade)) {
+        // Publica no broker (QoS 1)
+        if (mqtt.publicar(temperatura, umidade)) {
 
-            Serial.println("Dados enviados com sucesso!");
+            Serial.println("Leitura publicada (broker confirmou).");
 
         } else {
 
-            Serial.println("Falha ao enviar os dados.");
+            Serial.println("Falha ao publicar a leitura.");
         }
 
     } else {
 
         Serial.println("Falha na leitura do sensor.");
     }
-
-
-    delay(INTERVALO_ENVIO);
 }

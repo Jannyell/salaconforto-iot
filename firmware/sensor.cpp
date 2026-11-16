@@ -1,4 +1,4 @@
-#include "Sensor.h"
+#include "sensor.h"
 
 Sensor::Sensor(int pino, int tipo)
     : pino(pino), tipo(tipo), dht(pino, tipo) {

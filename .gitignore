@@ -22,6 +22,8 @@ __pycache__/
 *.db
 *.sqlite
 *.sqlite3
+*.db-wal
+*.db-shm
 
 # --------------------------------------
 # DADOS E MEDIÇÕES
@@ -39,3 +41,10 @@ data/*.csv
 # --------------------------------------
 .DS_Store
 Thumbs.db
+
+# --------------------------------------
+# CREDENCIAIS DA PLACA E DADOS DO BROKER
+# --------------------------------------
+firmware/credenciais.h
+broker/data/*
+!broker/data/.gitkeep
