@@ -1,4 +1,4 @@
-# SalaConforto 1.5: arquitetura e dependências
+# SalaConforto: arquitetura e dependências (fase 2)
 
 Instalação e execução: [README](README.md). O `python verificar.py` confere as dependências abaixo.
 
