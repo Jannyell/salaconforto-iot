@@ -7,8 +7,6 @@ public:
     void iniciar();
 
     bool conectado();
-
-    bool enviarDados(float temperatura, float umidade);
 };
 
 #endif

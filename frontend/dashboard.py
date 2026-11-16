@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-URL_API = "http://127.0.0.1:5000/api/leituras"
+URL_API = "http://127.0.0.1:5000/api"
 
 
 # --------------------------------------
@@ -42,7 +42,13 @@ carregar_estilo()
 # CONFIGURAÇÃO DO LIMITE
 # --------------------------------------
 
-limite = renderizar_sidebar()
+# Salas que já enviaram leituras (sala 1: placa real; sala 2: simulador)
+try:
+    salas = requests.get(f"{URL_API}/salas", timeout=3).json()
+except (requests.exceptions.RequestException, ValueError):
+    salas = []
+
+limite, sala = renderizar_sidebar(salas)
 
 # --------------------------------------
 # PAINEL DE MONITORAMENTO
@@ -53,7 +59,8 @@ def atualizar_painel():
 
     try:
         resposta = requests.get(
-            URL_API,
+            f"{URL_API}/leituras",
+            params={"sala": sala},
             timeout=3
         )
 

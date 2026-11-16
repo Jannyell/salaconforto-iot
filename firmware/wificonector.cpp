@@ -1,8 +1,7 @@
 
-#include "WifiConector.h"
+#include "wificonector.h"
 
 #include <WiFi.h>
-#include <HTTPClient.h>
 
 #include "credenciais.h"
 
@@ -64,66 +63,4 @@ void WifiConector::iniciar() {
 bool WifiConector::conectado() {
 
     return WiFi.status() == WL_CONNECTED;
-}
-
-// --------------------------------------
-// ENVIA DADOS PARA A API FLASK
-// --------------------------------------
-
-bool WifiConector::enviarDados(float temperatura, float umidade) {
-
-    if (!conectado()) {
-
-        Serial.println("Wi-Fi desconectado.");
-
-        return false;
-    }
-
-    HTTPClient http;
-
-    // Inicia a comunicação com a API
-    if (!http.begin(API_URL)) {
-
-        Serial.println("Falha ao iniciar conexão HTTP.");
-
-        return false;
-    }
-
-    // Define o tempo limite da requisição
-    http.setTimeout(5000);
-
-    http.addHeader("Content-Type", "application/json");
-
-    // Monta o JSON
-    String json = "{";
-    json += "\"temperatura\":" + String(temperatura, 2) + ",";
-    json += "\"umidade\":" + String(umidade, 2);
-    json += "}";
-
-    Serial.println("Enviando dados para a API...");
-    Serial.println(json);
-
-    // Envia os dados
-    int resposta = http.POST(json);
-
-    bool sucesso = false;
-
-    if (resposta > 0) {
-
-        Serial.print("Resposta da API: ");
-        Serial.println(resposta);
-
-        // Considera respostas HTTP entre 200 e 299 como sucesso
-        sucesso = resposta >= 200 && resposta < 300;
-
-    } else {
-
-        Serial.print("Erro HTTP: ");
-        Serial.println(http.errorToString(resposta));
-    }
-
-    // Encerra a comunicação HTTP
-    http.end();
-
-    return sucesso;
 }
