@@ -76,6 +76,14 @@ def porta_aberta(host, porta):
         return False
 
 
+def ip_na_rede():
+    # Descobre o IP deste computador na rede local (a interface da rota padrão).
+    # O UDP "connect" não envia nada: só escolhe a interface de saída
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+
+
 def get_json(url):
     with urllib.request.urlopen(url, timeout=3) as resposta:
         return resposta.status, json.loads(resposta.read())
@@ -202,6 +210,16 @@ def verificar_servicos():
         item("OK", f"painel respondendo em {URL_PAINEL}")
     else:
         item("FALHA", "painel fora do ar", "terminal 5: streamlit run frontend/dashboard.py")
+
+    try:
+        ip = ip_na_rede()
+        item("OK", f"IP deste computador na rede: {ip} (MQTT_HOST da placa; painel em http://{ip}:8501)")
+        if not porta_aberta(ip, BROKER_PORTA):
+            item("AVISO", f"broker não responde em {ip}:{BROKER_PORTA}; a placa não vai alcançá-lo",
+                 "suba o broker com -c broker/mosquitto.conf (ele abre a porta para a rede)")
+    except OSError:
+        item("AVISO", "sem rede: não foi possível descobrir o IP deste computador",
+             "conecte o computador ao mesmo Wi-Fi da placa")
 
 
 # --------------------------------------
