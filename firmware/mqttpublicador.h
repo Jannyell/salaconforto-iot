@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#include "fila.h"
+
 class MqttPublicador {
 
 public:
@@ -14,11 +16,15 @@ public:
 
     void manter();
 
-    bool publicar(float temperatura, float umidade);
+    // Monta uma leitura nova (início desta ligada, próximo seq, hora da medida)
+    Leitura novaLeitura(float temperatura, float umidade);
+
+    // Publica com QoS 1; true só depois da confirmação do broker (PUBACK)
+    bool publicar(Leitura &leitura);
 
 private:
     String inicio;
-    unsigned long seq = 0;
+    uint32_t seq = 0;
 };
 
 #endif

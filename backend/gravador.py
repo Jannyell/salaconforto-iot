@@ -86,9 +86,11 @@ def ao_receber(cliente, dados, mensagem):
 
     if status == 201:
         d = resultado["dados"]
+        # Leitura que esperou na fila da placa: o log mostra a hora da medida
+        medida = f" · medida às {d['horario'][11:19]}" if "medida" in leitura else ""
         log(
             f"sala {sala} · seq {d['seq']} · {d['temperatura']:.1f} °C · {d['umidade']:.1f} % "
-            f"→ sensação {d['sensacao_termica']:.1f} °C · gravada"
+            f"→ sensação {d['sensacao_termica']:.1f} °C · gravada{medida}"
         )
 
     elif status == 200:

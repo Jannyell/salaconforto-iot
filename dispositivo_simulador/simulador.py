@@ -24,6 +24,8 @@ def gerar_leitura(seq):
     return {
         "inicio": INICIO,
         "seq": seq,
+        # Hora da medida (segundos desde 1970): se a leitura esperar na fila, o banco guarda a hora certa
+        "medida": int(time.time()),
         "temperatura": round(random.uniform(24, 34), 1),
         "umidade": round(random.uniform(40, 85), 1)
     }
@@ -40,8 +42,10 @@ def enviar_leitura(cliente, dados):
     try:
         info.wait_for_publish(timeout=5)
 
-    except RuntimeError as erro:
-        print(f"Erro ao publicar leitura: {erro}")
+    except RuntimeError:
+        # Sem conexão: a biblioteca guarda a leitura e a envia quando reconectar
+        print(f"Leitura {dados['seq']} sem conexão com o broker: guardada, sai quando ele voltar")
+        print("-" * 35)
         return
 
     if info.is_published():

@@ -71,44 +71,69 @@ void MqttPublicador::manter() {
 }
 
 // --------------------------------------
+// HORA CERTA (NTP)
+// --------------------------------------
+
+// O relógio da placa só vale depois de acertado pela internet (NTP)
+static bool relogioCerto() {
+
+    return time(nullptr) > 1700000000;
+}
+
+// --------------------------------------
+// MONTA UMA LEITURA NOVA
+// --------------------------------------
+
+Leitura MqttPublicador::novaLeitura(float temperatura, float umidade) {
+
+    Leitura leitura;
+
+    strncpy(leitura.inicio, inicio.c_str(), sizeof(leitura.inicio) - 1);
+    leitura.inicio[sizeof(leitura.inicio) - 1] = '\0';
+
+    // O seq avança a cada leitura e nunca se repete na mesma ligada
+    leitura.seq = seq++;
+
+    leitura.temperatura = temperatura;
+    leitura.umidade = umidade;
+
+    // Hora da medida: se o relógio ainda não foi acertado, ela é calculada na publicação
+    leitura.medida = relogioCerto() ? (uint32_t) time(nullptr) : 0;
+    leitura.ms = millis();
+
+    return leitura;
+}
+
+// --------------------------------------
 // PUBLICA UMA LEITURA
 // --------------------------------------
 
-bool MqttPublicador::publicar(float temperatura, float umidade) {
+bool MqttPublicador::publicar(Leitura &leitura) {
+
+    // Leitura desta ligada feita antes de o relógio acertar: calcula a hora pela diferença de millis()
+    if (leitura.medida == 0 && relogioCerto() && inicio == leitura.inicio) {
+        leitura.medida = (uint32_t) time(nullptr) - (millis() - leitura.ms) / 1000;
+    }
 
     String topico = String("sala/") + SALA_ID + "/leitura";
 
-    // Monta o JSON
+    // Monta o JSON (sem "medida", o gravador usa a hora de chegada)
     String json = "{";
-    json += "\"inicio\":\"" + inicio + "\",";
-    json += "\"seq\":" + String(seq) + ",";
-    json += "\"temperatura\":" + String(temperatura, 2) + ",";
-    json += "\"umidade\":" + String(umidade, 2);
+    json += "\"inicio\":\"" + String(leitura.inicio) + "\",";
+    json += "\"seq\":" + String(leitura.seq) + ",";
+    if (leitura.medida > 0) {
+        json += "\"medida\":" + String(leitura.medida) + ",";
+    }
+    json += "\"temperatura\":" + String(leitura.temperatura, 2) + ",";
+    json += "\"umidade\":" + String(leitura.umidade, 2);
     json += "}";
 
     Serial.print("Publicando em ");
     Serial.println(topico);
     Serial.println(json);
 
-    // QoS 1: só devolve true depois que o broker confirmar
-    bool sucesso = cliente.publish(topico, json, false, 1);
-
-    // Sem confirmação em 5 s: reenvia a MESMA leitura (mesmo seq) uma vez.
-    // Se o broker já tinha recebido e só a confirmação se perdeu, a leitura
-    // chega repetida, e o gravador a ignora pela chave (sala, inicio, seq)
-    if (!sucesso) {
-
-        Serial.println("Sem confirmação do broker; reenviando a mesma leitura...");
-
-        if (!cliente.connected()) {
-            reconectar();
-        }
-
-        sucesso = cliente.connected() && cliente.publish(topico, json, false, 1);
-    }
-
-    // Depois do reenvio, o seq avança sempre: a próxima leitura nunca repete o número
-    seq++;
-
-    return sucesso;
+    // QoS 1: só devolve true depois que o broker confirmar.
+    // Sem confirmação, a leitura continua na fila e é enviada de novo (mesmo seq);
+    // se o broker já a tinha recebido, o gravador ignora a repetida pela chave
+    return cliente.publish(topico, json, false, 1);
 }

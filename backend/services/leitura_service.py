@@ -17,6 +17,7 @@ def registrar_leitura(sala, dados):
     umidade = dados.get("umidade")
     inicio = dados.get("inicio")
     seq = dados.get("seq")
+    medida = dados.get("medida")
 
     # Converte os valores para números
     try:
@@ -43,6 +44,20 @@ def registrar_leitura(sala, dados):
     if not isinstance(inicio, str) or not 0 < len(inicio) <= 32 or not 0 <= seq < 2 ** 63:
         return {"erro": "Identificação da leitura inválida"}, 400
 
+    # Hora da leitura: a da medida, quando a placa manda (leitura que esperou na fila),
+    # ou a de chegada. Medida que não é número inteiro é recusada; medida fora da faixa
+    # (antes de 2024 ou mais de 5 min no futuro, como num relógio errado) usa a hora de chegada,
+    # para a leitura não se perder
+    agora = datetime.now(ZoneInfo("America/Fortaleza"))
+    horario = agora
+
+    if medida is not None:
+        if not isinstance(medida, int) or isinstance(medida, bool):
+            return {"erro": "Hora da medida inválida"}, 400
+
+        if 1704067200 <= medida <= agora.timestamp() + 300:
+            horario = datetime.fromtimestamp(medida, ZoneInfo("America/Fortaleza"))
+
     # Calcula a sensação térmica
     sensacao = calculo.calcular_sensacao_termica(
         temperatura,
@@ -54,7 +69,7 @@ def registrar_leitura(sala, dados):
         "sala": sala,
         "inicio": inicio,
         "seq": seq,
-        "horario": datetime.now(ZoneInfo("America/Fortaleza")).isoformat(timespec="seconds"),
+        "horario": horario.isoformat(timespec="seconds"),
         "temperatura": temperatura,
         "umidade": umidade,
         "sensacao_termica": sensacao

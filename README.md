@@ -17,14 +17,23 @@ Streamlit mostra as leituras de cada sala. Para testes sem a placa, um simulador
 
 | Peça | Arquivo | Papel |
 |---|---|---|
-| Placa | `firmware/` | Lê o DHT22 a cada 20 s e publica a leitura com `inicio` (sorteado a cada ligada) e `seq` (contador); sem PUBACK, reenvia uma vez |
+| Placa | `firmware/` | Lê o DHT22 a cada 20 s, com ou sem rede, e põe a leitura numa fila na memória (até 1 h); publica a fila com `inicio` (sorteado a cada ligada), `seq` (contador) e `medida` (hora da medida, por NTP); sem PUBACK, a leitura continua na fila |
 | Simulador | `dispositivo_simulador/simulador.py` | Faz o papel de outra placa, na sala 2 |
-| Broker | `broker/mosquitto.conf` | Recebe e confirma as leituras; guarda as do gravador em disco enquanto ele está fora |
+| Broker | `broker/mosquitto.conf` | Recebe e confirma as leituras; guarda as do gravador em disco a cada mudança enquanto ele está fora |
 | Gravador | `backend/gravador.py` | Valida, calcula a sensação térmica e grava; ignora a leitura repetida pela chave (sala, inicio, seq) |
 | API | `backend/app.py`, `routes.py` | Só lê o banco |
 | Painel | `frontend/dashboard.py` | Mostra a sala escolhida |
 
-Ponto único de falha: o broker. Com ele fora, a placa não publica e as leituras se perdem.
+O broker continua sendo o ponto único de falha, mas a queda dele não perde leituras:
+- a placa guarda até 1 h de leituras na fila e as envia quando o broker volta, com a hora da medida;
+- o broker grava em disco logo depois de cada mudança, então uma queda brusca perde no máximo o que chegou no último
+  instante.
+
+Limites (protótipo): sem broker por mais de 1 h, a placa guarda só a última hora; se ela reiniciar durante a queda,
+a fila se perde.
+
+Melhoria futura: broker em cluster (EMQX, HiveMQ, VerneMQ) ou gerenciado na nuvem (AWS IoT Core, HiveMQ Cloud),
+para o sistema seguir recebendo leituras mesmo com um nó fora do ar.
 
 | Dependência | Para que serve |
 |---|---|
